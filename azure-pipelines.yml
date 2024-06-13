@@ -1,0 +1,92 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+
+pool: default
+  #vmImage: ubuntu-latest
+
+stages:
+  - stage: tfvalidate
+    jobs:
+      - job: validate
+        steps: 
+        - task: CmdLine@2
+          inputs:
+            script: 'sudo apt install mysql-client-core-8.0'
+        - task: TerraformInstaller@1
+          inputs:
+            terraformVersion: 'latest'
+        - task: TerraformTaskV4@4
+          inputs:
+            provider: 'azurerm'
+            command: 'init'
+            backendServiceArm: 'Azure- pass subscription'
+            backendAzureRmResourceGroupName: 'NetworkWatcherRG'
+            backendAzureRmStorageAccountName: 'terraformstate2011'
+            backendAzureRmContainerName: 'tfstatefiles'
+            backendAzureRmKey: 'tfstate'
+        - task: TerraformTaskV4@4
+          inputs:
+            provider: 'azurerm'
+            command: 'validate'
+        - task: CmdLine@2
+          inputs:
+            script: hostname
+
+  - stage: tfplan
+    jobs:
+      - job: plan
+        steps:
+        - task: TerraformInstaller@1
+          inputs:
+            terraformVersion: 'latest'
+        - task: TerraformTaskV4@4
+          inputs:
+            provider: 'azurerm'
+            command: 'init'
+            backendServiceArm: 'Azure- pass subscription'
+            backendAzureRmResourceGroupName: 'NetworkWatcherRG'
+            backendAzureRmStorageAccountName: 'terraformstate2011'
+            backendAzureRmContainerName: 'tfstatefiles'
+            backendAzureRmKey: 'tfstate'
+        - task: TerraformTaskV4@4
+          inputs:
+            provider: 'azurerm'
+            command: 'plan'
+            environmentServiceNameAzureRM: 'Azure- pass subscription'
+  - stage: approvalstage
+    jobs:
+      - job: approve
+        pool: server
+        steps:
+        - task: ManualValidation@1
+          inputs:
+            notifyUsers: 'anilreddy103@gmail.com'
+            instructions: 'Approve it'
+  - stage: tfapply
+    jobs:
+      - job: plan
+        steps:
+        - task: TerraformInstaller@1
+          inputs:
+            terraformVersion: 'latest'
+        - task: TerraformTaskV4@4
+          inputs:
+            provider: 'azurerm'
+            command: 'init'
+            backendServiceArm: 'Azure- pass subscription'
+            backendAzureRmResourceGroupName: 'NetworkWatcherRG'
+            backendAzureRmStorageAccountName: 'terraformstate2011'
+            backendAzureRmContainerName: 'tfstatefiles'
+            backendAzureRmKey: 'tfstate'
+        - task: TerraformTaskV4@4
+          inputs:
+            provider: 'azurerm'
+            command: 'apply'
+            environmentServiceNameAzureRM: 'Azure- pass subscription'
+
